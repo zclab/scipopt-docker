@@ -35,7 +35,7 @@ RUN ln -sf /usr/bin/python3.10  /usr/bin/python3 \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # 将本地下载的文件复制到容器中
-COPY SCIPOptSuite-9.1.0-Linux-ubuntu22.sh /tmp/scip_install.sh
+COPY SCIPOptSuite-9.0.1-Linux-ubuntu22.sh /tmp/scip_install.sh
 
 # 下载并安装 SCIP 9.1.0 自解压归档文件
 RUN chmod +x /tmp/scip_install.sh \
@@ -43,7 +43,7 @@ RUN chmod +x /tmp/scip_install.sh \
     && rm /tmp/scip_install.sh
 
 # 安装 Python SCIP 接口
-RUN pip3 install --no-cache-dir PySCIPOpt==5.1.1
+RUN pip3 install --no-cache-dir PySCIPOpt==5.0.1
 
 # 设置 SCIP 二进制文件路径
 ENV PATH="/usr/local/bin:${PATH}"
