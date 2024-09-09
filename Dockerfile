@@ -25,6 +25,7 @@ RUN apt-get install -y --no-install-recommends \
     libgsl27 \
     patchelf \
     wget \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置 Python 3.10 为默认版本
