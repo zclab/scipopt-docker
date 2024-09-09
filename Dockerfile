@@ -4,8 +4,13 @@ FROM ubuntu:22.04
 # 设置环境变量以防止交互安装
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 设置时区为Asia/Shanghai
+RUN apt-get update && apt-get install -y tzdata \
+    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && dpkg-reconfigure --frontend noninteractive tzdata
+
 # 更新包列表并安装 Python 3.10 和 SCIP 所需的依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     python3.10 \
     python3.10-venv \
     python3.10-dev \
@@ -20,23 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgsl27 \
     patchelf \
     wget \
-    tzdata \
-    ca-certificates \
-    locales \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置 Python 3.10 为默认版本
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 \
-    && update-alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3 1
-
-# 设置时区为 Asia/Shanghai 并生成 locale
-ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
-    locale-gen en_US.UTF-8
-
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL=en_US.UTF-8
+RUN ln -sf /usr/bin/python3.10  /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.10  /usr/bin/python
 
 # 将本地下载的文件复制到容器中
 COPY SCIPOptSuite-9.1.0-Linux-ubuntu22.sh /tmp/scip_install.sh
