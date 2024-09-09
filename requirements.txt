@@ -1,0 +1,8 @@
+numpy < 2.0.0
+pyomo
+pyyaml
+retrying
+gunicorn
+psycopg2
+requests
+flask
