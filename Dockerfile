@@ -37,16 +37,17 @@ RUN ln -sf /usr/bin/python3.10  /usr/bin/python3 \
 # 将本地下载的文件复制到容器中
 COPY SCIPOptSuite-9.0.1-Linux-ubuntu22.sh /tmp/scip_install.sh
 
-# 下载并安装 SCIP 9.1.0 自解压归档文件
+# 设置 SCIPOPTDIR 环境变量，并安装 SCIP 9.1.0
+ENV SCIPOPTDIR=/usr/local
 RUN chmod +x /tmp/scip_install.sh \
-    && /tmp/scip_install.sh --skip-license --prefix=/usr/local \
+    && /tmp/scip_install.sh --skip-license --prefix=$SCIPOPTDIR \
     && rm /tmp/scip_install.sh
+
+# 设置 SCIP 二进制文件路径
+ENV PATH="${SCIPOPTDIR}/bin:${PATH}"
 
 # 安装 Python SCIP 接口
 RUN pip3 install --no-cache-dir PySCIPOpt==5.0.1
-
-# 设置 SCIP 二进制文件路径
-ENV PATH="/usr/local/bin:${PATH}"
 
 # 将项目文件复制到容器中
 WORKDIR /app
