@@ -59,7 +59,7 @@ jobs:
         with:
           context: .
           push: false  # 默认不推送
-          platforms: linux/amd64,linux/arm64  # 指定多平台
+          platforms: linux/amd64  # 指定多平台
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/scipopt-docker:${{ env.tag }}
 
       - name: Build and push Docker image
@@ -68,5 +68,5 @@ jobs:
         with:
           context: .
           push: true  # 推送镜像
-          platforms: linux/amd64,linux/arm64  # 指定多平台
+          platforms: linux/amd64  # 指定多平台
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/scipopt-docker:${{ env.tag }}
