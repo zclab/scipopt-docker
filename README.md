@@ -1,0 +1,1 @@
+# scipopt-docker
