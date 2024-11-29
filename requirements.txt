@@ -8,3 +8,10 @@ requests
 flask
 redis
 confluent-kafka
+async_timeout
+filelock
+genvent
+greenlet
+redis == 5.2.0
+zope.event
+zope.interface
