@@ -10,7 +10,7 @@ redis
 confluent-kafka
 async_timeout
 filelock
-genvent
+gevent
 greenlet
 redis == 5.2.0
 zope.event
