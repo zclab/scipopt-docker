@@ -15,3 +15,4 @@ greenlet
 redis == 5.2.0
 zope.event
 zope.interface
+concurrent-log-handler
