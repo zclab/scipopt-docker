@@ -17,3 +17,5 @@ zope.event
 zope.interface
 concurrent-log-handler
 scipy
+pymysql
+python-dateutil
