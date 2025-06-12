@@ -19,3 +19,4 @@ concurrent-log-handler
 scipy
 pymysql
 python-dateutil
+pandas
