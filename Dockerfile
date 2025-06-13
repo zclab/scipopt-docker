@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata
 
 # 更新包列表并安装 Python 3.10 和 SCIP 所需的依赖
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3.10 \
     python3.10-venv \
@@ -26,6 +26,7 @@ RUN apt-get install -y --no-install-recommends \
     libgsl27 \
     patchelf \
     wget \
+    curl \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -37,7 +38,7 @@ RUN ln -sf /usr/bin/python3.10  /usr/bin/python3 \
 # 将本地下载的文件复制到容器中
 COPY SCIPOptSuite-9.0.1-Linux-ubuntu22.sh /tmp/scip_install.sh
 
-# 设置 SCIPOPTDIR 环境变量，并安装 SCIP 9.1.0
+# 设置 SCIPOPTDIR 环境变量，并安装 SCIP 9.0.1 (根据文件名)
 ENV SCIPOPTDIR=/usr/local
 RUN chmod +x /tmp/scip_install.sh \
     && /tmp/scip_install.sh --skip-license --prefix=$SCIPOPTDIR \
