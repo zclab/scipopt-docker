@@ -1,21 +1,36 @@
-# 使用 Ubuntu 22.04 作为基础镜像
+# ==========================================
+# 阶段 1: Builder
+# ==========================================
+FROM ubuntu:22.04 AS builder
+
+ARG TARGETARCH
+
+COPY scipoptsuite-10.0.2-glibc2_28-amd64.tgz /tmp/
+COPY scipoptsuite-10.0.2-glibc2_28-aarch64.tgz /tmp/
+
+RUN mkdir -p /opt/scip && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        tar -xzf /tmp/scipoptsuite-10.0.2-glibc2_28-aarch64.tgz -C /opt/scip --strip-components=1; \
+    else \
+        tar -xzf /tmp/scipoptsuite-10.0.2-glibc2_28-amd64.tgz -C /opt/scip --strip-components=1; \
+    fi
+
+# ==========================================
+# 阶段 2: 镜像
+# ==========================================
 FROM ubuntu:22.04
 
-# 设置环境变量以防止交互安装
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 设置时区为Asia/Shanghai
 RUN apt-get update && apt-get install -y tzdata \
     && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && dpkg-reconfigure --frontend noninteractive tzdata
 
-# 更新包列表并安装 Python 3.10 和 SCIP 所需的依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3.10 \
     python3.10-venv \
     python3.10-dev \
-    python3-pip \
     gcc \
     g++ \
     gfortran \
@@ -25,40 +40,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas-dev \
     libgsl27 \
     patchelf \
-    wget \
-    curl \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 设置 Python 3.10 为默认版本
-RUN ln -sf /usr/bin/python3.10  /usr/bin/python3 \
-    && ln -sf /usr/bin/python3.10  /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip
-
-# 将本地下载的文件复制到容器中
-COPY SCIPOptSuite-9.0.1-Linux-ubuntu22.sh /tmp/scip_install.sh
-
-# 设置 SCIPOPTDIR 环境变量，并安装 SCIP 9.0.1 (根据文件名)
+# 设置环境变量
 ENV SCIPOPTDIR=/usr/local
-RUN chmod +x /tmp/scip_install.sh \
-    && /tmp/scip_install.sh --skip-license --prefix=$SCIPOPTDIR \
-    && rm /tmp/scip_install.sh
+# 配置动态链接库路径 (核心: 防止 libscip.so 找不到)
+ENV LD_LIBRARY_PATH="${SCIPOPTDIR}/lib:${LD_LIBRARY_PATH}"
 
-# 设置 SCIP 二进制文件路径
-ENV PATH="${SCIPOPTDIR}/bin:${PATH}"
+# 从 Builder 复制 SCIP
+COPY --from=builder /opt/scip ${SCIPOPTDIR}
 
-# 安装 Python SCIP 接口
-RUN pip3 install --no-cache-dir PySCIPOpt==5.0.1
+# 1. 创建并激活 Python 虚拟环境
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3.10 -m venv $VIRTUAL_ENV
+# 将虚拟环境路径加入 PATH
+ENV PATH="$VIRTUAL_ENV/bin:${SCIPOPTDIR}/bin:${PATH}"
 
-# 将项目文件复制到容器中
 WORKDIR /app
-COPY . /app
 
-# 安装 Python 依赖
-RUN pip3 install --no-cache-dir -r requirements.txt
+# 2. 缓存优化: 先只复制 requirements.txt 安装依赖
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir PySCIPOpt && \
+    pip install --no-cache-dir -r requirements.txt
 
-# 暴露端口 5500
+# 3. 再复制项目代码。这样只要 requirements.txt 不变，上面的依赖安装层就会被 Docker 缓存
+COPY . .
+
+# ----------------------------------------------
+
 EXPOSE 5500
 
-# 设置容器启动时的默认命令
-CMD ["python3", "main.py"]
+CMD ["python", "main.py"]

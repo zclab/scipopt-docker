@@ -1,23 +1,4 @@
-numpy < 2.0.0
+numpy
 pyomo
 pyyaml
-retrying
-gunicorn
-psycopg2
 requests
-flask
-redis
-confluent-kafka
-async_timeout
-filelock
-gevent
-greenlet
-redis == 5.2.0
-zope.event
-zope.interface
-concurrent-log-handler
-scipy
-pymysql
-python-dateutil
-pandas
-openpyxl

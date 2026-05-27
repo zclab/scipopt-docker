@@ -3,42 +3,42 @@ name: Build and Push Docker image
 on:
   push:
     branches:
-      - main  # 当代码推送到 main 分支时触发
+      - main
     tags:
-      - '*'  # 当有标签推送时触发
+      - '*'
+    # 优化: 忽略与构建无关的文件修改，节省 GitHub Actions 时长额度
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   pull_request:
     branches:
-      - main  # 当向 main 分支提交 PR 时触发
+      - main
+    paths-ignore:
+      - '**.md'
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # 使用 Ubuntu 22.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'  # 仅在非 PR 事件中执行
-        uses: docker/login-action@v2
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract GitHub tag
-        id: extract_tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Set Docker image tag
         id: image_tag
@@ -46,27 +46,21 @@ jobs:
           if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
               echo "tag=latest" >> $GITHUB_ENV
           elif [ "${GITHUB_EVENT_NAME}" == "pull_request" ]; then
-              echo "tag=pr-1" >> $GITHUB_ENV
+              echo "tag=pr-${{ github.event.number }}" >> $GITHUB_ENV
           elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
               echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           else
               echo "tag=unknown" >> $GITHUB_ENV
           fi
 
-      - name: Build Docker image
-        if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: false  # 默认不推送
-          platforms: linux/amd64  # 指定多平台
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/scipopt-docker:${{ env.tag }}
-
       - name: Build and push Docker image
-        if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
-          push: true  # 推送镜像
-          platforms: linux/amd64  # 指定多平台
+          # PR 时仅构建不推送，Push 时构建并推送
+          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/scipopt-docker:${{ env.tag }}
+          # 开启 GitHub Actions 的构建缓存，第二次构建速度将产生质的飞跃
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
