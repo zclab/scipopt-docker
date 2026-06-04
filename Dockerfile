@@ -1,7 +1,7 @@
 # ==========================================
 # 阶段 1: Builder
 # ==========================================
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:24.04 AS builder
 
 ARG TARGETARCH
 
@@ -18,27 +18,29 @@ RUN mkdir -p /opt/scip && \
 # ==========================================
 # 阶段 2: 镜像
 # ==========================================
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 1. 配置时区
 RUN apt-get update && apt-get install -y tzdata \
     && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && dpkg-reconfigure --frontend noninteractive tzdata
 
+# 2. 安装系统依赖 (Ubuntu 24.04 原生默认支持 Python 3.12)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    python3.10 \
-    python3.10-venv \
-    python3.10-dev \
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
     gcc \
     g++ \
     gfortran \
-    liblapack3 \
-    libtbb12 \
-    libcliquer1 \
+    liblapack-dev \
+    libtbb-dev \
+    libcliquer-dev \
     libopenblas-dev \
-    libgsl27 \
+    libgsl-dev \
     patchelf \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -51,21 +53,21 @@ ENV LD_LIBRARY_PATH="${SCIPOPTDIR}/lib:${LD_LIBRARY_PATH}"
 # 从 Builder 复制 SCIP
 COPY --from=builder /opt/scip ${SCIPOPTDIR}
 
-# 1. 创建并激活 Python 虚拟环境
+# 3. 创建并激活 Python 虚拟环境
 ENV VIRTUAL_ENV=/opt/venv
-RUN python3.10 -m venv $VIRTUAL_ENV
+RUN python3.12 -m venv $VIRTUAL_ENV
 # 将虚拟环境路径加入 PATH
 ENV PATH="$VIRTUAL_ENV/bin:${SCIPOPTDIR}/bin:${PATH}"
 
 WORKDIR /app
 
-# 2. 缓存优化: 先只复制 requirements.txt 安装依赖
+# 4. 缓存优化: 先只复制 requirements.txt 安装依赖
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir PySCIPOpt && \
     pip install --no-cache-dir -r requirements.txt
 
-# 3. 再复制项目代码。这样只要 requirements.txt 不变，上面的依赖安装层就会被 Docker 缓存
+# 5. 再复制项目代码。这样只要 requirements.txt 不变，上面的依赖安装层就会被 Docker 缓存
 COPY . .
 
 # ----------------------------------------------
